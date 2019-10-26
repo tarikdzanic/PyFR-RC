@@ -194,6 +194,7 @@ class NodalMeshAssembler(object):
 		pbcfaces = defaultdict(list)
 		nodepts = self._nodepts
    
+   		ret = {}
 		for lpent in pbc:
 			for pftype in pbc[lpent]:
 				lfnodes = pbc[lpent][pftype]
