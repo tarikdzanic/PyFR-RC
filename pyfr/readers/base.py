@@ -208,7 +208,7 @@ class NodalMeshAssembler(object):
 
 		for k, v in pbcfaces.items():
 			ret['pcon_{0}_p0'.format(k)] = np.array(v, dtype='S4,i4,i1,i1')
-			
+
 		# -------
 
 		pfpairs = self._pair_periodic_fluid_faces(bpart, resid)
@@ -233,11 +233,10 @@ class NodalMeshAssembler(object):
 			bcon[pbcrgn] = bf[pent]
 
 		# Output
-		ret = {'con_p0': np.array(con, dtype='S4,i4,i1,i1').T}
+		ret['con_p0'] = np.array(con, dtype='S4,i4,i1,i1').T
 
 		for k, v in bcon.items():
 			ret['bcon_{0}_p0'.format(k)] = np.array(v, dtype='S4,i4,i1,i1')
-
 
 		return ret
 
