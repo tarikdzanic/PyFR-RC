@@ -69,8 +69,6 @@ class InletForcingPlugin(BasePlugin):
 
 			self._eidxs = {k: np.array(v) for k, v in eidxs.items()}
 			self._norms = {k: np.array(v) for k, v in norms.items()}
-		else:
-			raise ValueError ('Could not find periodic boundary ' + bc + ' in mesh.')
 
 
 	def __call__(self, intg):
