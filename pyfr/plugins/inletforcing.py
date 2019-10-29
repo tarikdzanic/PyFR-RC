@@ -123,12 +123,12 @@ class InletForcingPlugin(BasePlugin):
 			# Body forcing term added to maintain constant mass inflow
 			ruf = intg.system.rhouforce + (1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
 
-			if (mdot/self.mdotstar > 1.1 or mdot/self.mdotstar < 0.9):
-				print('Mass flow rate exceeds 10%% error: ', mdot/self.mdotstar)
+			if (self.mdot/self.mdotstar > 1.1 or self.mdot/self.mdotstar < 0.9):
+				print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
 
 			# Broadcast to all ranks
 			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
-			intg.system.mdotold = float(comm.bcast(mdot, root=root))
+			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
 			self.rankschecked = []
 			self.mdot = 0.0
 
