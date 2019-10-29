@@ -112,8 +112,9 @@ class InletForcingPlugin(BasePlugin):
 		print(rhou[0],area[0])
 		# Current mass flow rate per area
 		if area[0] != 0.0:
+			print('start')
 			self.mdot = -rhou[0]/area[0] # Negative since rhou_in normal points outwards
-
+			print(self.mdot)
 			# Body forcing term added to maintain constant mass inflow  -> weight by portion of total area for parallel runs
 			ruf = intg.system.rhouforce + (area/self.area)*(1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
 
