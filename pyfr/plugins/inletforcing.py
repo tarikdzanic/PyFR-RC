@@ -84,6 +84,8 @@ class InletForcingPlugin(BasePlugin):
 			return
 		else:
 			intg.rankschecked.append(rank)
+			intg.rankschecked = float(comm.bcast(intg.rankschecked, root=root))
+
 
 		# Solution matrices indexed by element type
 		solns = dict(zip(intg.system.ele_types, intg.soln))
@@ -131,6 +133,6 @@ class InletForcingPlugin(BasePlugin):
 			# Broadcast to all ranks
 			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
 			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
-			intg.rankschecked = []
+			intg.rankschecked = float(comm.bcast([], root=root))
 			self.mdot = 0.0
 
