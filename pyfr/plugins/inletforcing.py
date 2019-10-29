@@ -109,12 +109,10 @@ class InletForcingPlugin(BasePlugin):
 			rhou[:ndims] += np.einsum('i...,ij,jik', qwts, ru, norms)
 			area[:ndims] += -np.einsum('i...,ij,jik', qwts, ones, norms)
 
-		print(rhou[0],area[0])
 		# Current mass flow rate per area
 		if area[0] != 0.0:
-			print('start')
 			self.mdot = -rhou[0]/area[0] # Negative since rhou_in normal points outwards
-			print(self.mdot)
+
 			# Body forcing term added to maintain constant mass inflow  -> weight by portion of total area for parallel runs
 			ruf = intg.system.rhouforce + (area/self.area)*(1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
 
@@ -122,7 +120,6 @@ class InletForcingPlugin(BasePlugin):
 				print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
 
 			# Broadcast to all ranks
-			print(intg.system.rhouforce)
-			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
-			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
+			#intg.system.rhouforce = float(comm.bcast(ruf, root=root))
+			#intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
 
