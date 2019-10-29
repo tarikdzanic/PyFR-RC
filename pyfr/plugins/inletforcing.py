@@ -122,7 +122,7 @@ class InletForcingPlugin(BasePlugin):
 				print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
 
 			# Broadcast to all ranks
+			print(intg.system.rhouforce)
 			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
 			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
-			print(intg.system.rhouforce)
 
