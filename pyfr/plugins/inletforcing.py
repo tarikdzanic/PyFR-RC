@@ -47,8 +47,6 @@ class InletForcingPlugin(BasePlugin):
 
 		# If we have the boundary then process the interface
 		if bc in mesh:
-			intg.inletranks.append(rank)
-			intg.inletranks = float(comm.bcast(intg.inletranks, root=root))
 			# Element indices and associated face normals
 			eidxs = defaultdict(list)
 			norms = defaultdict(list)
@@ -77,22 +75,13 @@ class InletForcingPlugin(BasePlugin):
 		# MPI info
 		comm, rank, root = get_comm_rank_root()
 
-		print(rank)
-		print(intg.inletranks)
-
-		if rank not in intg.inletranks:
-			return
-		else:
-			intg.rankschecked.append(rank)
-			intg.rankschecked = float(comm.bcast(intg.rankschecked, root=root))
-
-
 		# Solution matrices indexed by element type
 		solns = dict(zip(intg.system.ele_types, intg.soln))
 		ndims, nvars = self.ndims, self.nvars
 
 		# Force vector
 		rhou = np.zeros(ndims)
+		area = np.zeros(ndims)
 
 		for etype, fidx in self._m0:
 			# Get the interpolation operator
@@ -110,6 +99,7 @@ class InletForcingPlugin(BasePlugin):
 			# Compute the U-momentum
 			ruidx = 1
 			ru = self.elementscls.con_to_pri(ufpts, self.cfg)[ruidx]
+			ones = np.ones(np.shape(ru))
 
 			# Get the quadrature weights and normal vectors
 			qwts = self._qwts[etype, fidx]
@@ -117,22 +107,19 @@ class InletForcingPlugin(BasePlugin):
 
 			# Do the quadrature
 			rhou[:ndims] += np.einsum('i...,ij,jik', qwts, ru, norms)
-
+			area[:ndims] += -np.einsum('i...,ij,jik', qwts, ones, norms)
 
 		# Current mass flow rate per area
-		self.mdot += -rhou[0]/self.area # Negative since rhou_in normal points outwards
+		self.mdot += -rhou[0]/area # Negative since rhou_in normal points outwards
 
-		if len(intg.rankschecked) == len(intg.inletranks):
-			print(intg.rankschecked, intg.inletranks)
-			# Body forcing term added to maintain constant mass inflow
-			ruf = intg.system.rhouforce + (1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
+		# Body forcing term added to maintain constant mass inflow
+		ruf = intg.system.rhouforce + (area/self.area)*(1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
 
-			if (self.mdot/self.mdotstar > 1.1 or self.mdot/self.mdotstar < 0.9):
-				print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
+		if (self.mdot/self.mdotstar > 1.1 or self.mdot/self.mdotstar < 0.9):
+			print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
 
-			# Broadcast to all ranks
-			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
-			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
-			intg.rankschecked = float(comm.bcast([], root=root))
-			self.mdot = 0.0
+		# Broadcast to all ranks
+		intg.system.rhouforce = float(comm.bcast(ruf, root=root))
+		intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
+		self.mdot = 0.0
 

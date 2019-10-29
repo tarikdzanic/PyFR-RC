@@ -57,9 +57,6 @@ class BaseIntegrator(object):
         # Record the starting wall clock time
         self._wstart = time.time()
 
-        self.rankschecked = []
-        self.inletranks = []
-
     def _get_plugins(self):
         plugins = []
 
