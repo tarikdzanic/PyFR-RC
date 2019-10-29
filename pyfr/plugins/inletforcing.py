@@ -26,9 +26,9 @@ class InletForcingPlugin(BasePlugin):
 
 		inletname = self.cfg.getliteral(cfgsect, 'inletname')
 		self.area = self.cfg.getfloat(cfgsect, 'area')
-		#self.Ain = self.cfg.getfloat(cfgsect, 'areain')
-		#self.Aout = self.cfg.getfloat(cfgsect, 'areaout')
 		self.mdotstar = self.cfg.getfloat(cfgsect, 'mdotstar') # Desired mass flow rate per area at inlet
+		self.inletranks = []
+		self.rankschecked = []
 
 		# Initialize rhou forcing
 		intg.system.rhouforce = 0.0
@@ -47,6 +47,7 @@ class InletForcingPlugin(BasePlugin):
 
 		# If we have the boundary then process the interface
 		if bc in mesh:
+			self.inletranks.append(rank)
 			# Element indices and associated face normals
 			eidxs = defaultdict(list)
 			norms = defaultdict(list)
@@ -74,6 +75,11 @@ class InletForcingPlugin(BasePlugin):
 	def __call__(self, intg):
 		# MPI info
 		comm, rank, root = get_comm_rank_root()
+
+		if rank not in self.inletranks:
+			return
+		else:
+			self.rankschecked.append(rank)
 
 		# Solution matrices indexed by element type
 		solns = dict(zip(intg.system.ele_types, intg.soln))
@@ -108,15 +114,18 @@ class InletForcingPlugin(BasePlugin):
 
 
 		# Current mass flow rate per area
-		mdot = -rhou[0]/self.area # Negative since rhou_in normal points outwards
+		mdot += -rhou[0]/self.area # Negative since rhou_in normal points outwards
 
-		# Body forcing term added to maintain constant mass inflow
-		ruf = intg.system.rhouforce + (1.0/intg._dt)*(self.mdotstar - 2.*mdot + intg.system.mdotold)
+		if len(self.rankschecked) == len(self.inletranks):
+			print(self.rankschecked, self.inletranks)
+			# Body forcing term added to maintain constant mass inflow
+			ruf = intg.system.rhouforce + (1.0/intg._dt)*(self.mdotstar - 2.*mdot + intg.system.mdotold)
 
-		if (mdot/self.mdotstar > 1.1 or mdot/self.mdotstar < 0.9):
-			print('Mass flow rate exceeds 10%% error: ', mdot/self.mdotstar)
+			if (mdot/self.mdotstar > 1.1 or mdot/self.mdotstar < 0.9):
+				print('Mass flow rate exceeds 10%% error: ', mdot/self.mdotstar)
 
-		# Broadcast to all ranks
-		intg.system.rhouforce = float(comm.bcast(ruf, root=root))
-		intg.system.mdotold = float(comm.bcast(mdot, root=root))
+			# Broadcast to all ranks
+			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
+			intg.system.mdotold = float(comm.bcast(mdot, root=root))
+			self.rankschecked = []
 

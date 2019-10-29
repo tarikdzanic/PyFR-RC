@@ -66,7 +66,7 @@ class BasePartitioner(object):
 			return con
 
 		# Connectivity
-		intcon, mpicon, bccon = [], {}, defaultdict(list)
+		intcon, mpicon, bccon, pccon = [], {}, defaultdict(list), defaultdict(list)
 
 		for f in mesh:
 			mi = re.match(r'con_p(\d+)$', f)
@@ -190,6 +190,7 @@ class BasePartitioner(object):
 		con_px = defaultdict(list)
 		con_pxpy = defaultdict(list)
 		bcon_px = defaultdict(list)
+		pcon_px = defaultdict(list)
 
 		# Global-to-local element index map
 		eleglmap = defaultdict(list)
@@ -227,6 +228,16 @@ class BasePartitioner(object):
 					conl = (lpetype, leidxl, lfidx, lflags)
 
 					bcon_px[m.group(1), lpart].append(conl)
+		for f in mesh:
+			m = re.match('pcon_(.+?)_p0$', f)
+			if m:
+				lhs = mesh[f].astype('U4,i4,i1,i1')
+
+				for lpetype, leidxg, lfidx, lflags in lhs:
+					lpart, leidxl = eleglmap[lpetype][leidxg]
+					conl = (lpetype, leidxl, lfidx, lflags)
+
+					pcon_px[m.group(1), lpart].append(conl)
 
 		# Output data type
 		dtype = 'S4,i4,i1,i1'
@@ -242,6 +253,9 @@ class BasePartitioner(object):
 
 		for k, v in bcon_px.items():
 			ret['bcon_{0}_p{1}'.format(*k)] = np.array(v, dtype=dtype)
+
+		for k, v in pcon_px.items():
+			ret['pcon_{0}_p{1}'.format(*k)] = np.array(v, dtype=dtype)
 
 		return ret
 
