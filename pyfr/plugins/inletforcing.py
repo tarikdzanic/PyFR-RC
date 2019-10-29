@@ -114,7 +114,7 @@ class InletForcingPlugin(BasePlugin):
 			self.mdot = -rhou[0]/area[0] # Negative since rhou_in normal points outwards
 
 			# Body forcing term added to maintain constant mass inflow  -> weight by portion of total area for parallel runs
-			ruf = intg.system.rhouforce + (area/self.area)*(1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
+			ruf = intg.system.rhouforce + (area[0]/self.area)*(1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
 
 			if (self.mdot/self.mdotstar > 1.1 or self.mdot/self.mdotstar < 0.9):
 				print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
