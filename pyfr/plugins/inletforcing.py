@@ -31,7 +31,7 @@ class InletForcingPlugin(BasePlugin):
 		self.mdot = 0.0
 		try:
 			self.inletranks
-		except NameError:
+		except AttributeError:
 			self.inletranks = []
 		self.rankschecked = []
 
