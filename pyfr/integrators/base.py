@@ -58,6 +58,7 @@ class BaseIntegrator(object):
         self._wstart = time.time()
 
         self.rankschecked = []
+        self.inletranks = []
 
     def _get_plugins(self):
         plugins = []
