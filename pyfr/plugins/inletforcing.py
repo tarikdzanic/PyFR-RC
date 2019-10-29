@@ -27,6 +27,8 @@ class InletForcingPlugin(BasePlugin):
 		inletname = self.cfg.getliteral(cfgsect, 'inletname')
 		self.area = self.cfg.getfloat(cfgsect, 'area')
 		self.mdotstar = self.cfg.getfloat(cfgsect, 'mdotstar') # Desired mass flow rate per area at inlet
+
+		self.mdot = 0.0
 		self.inletranks = []
 		self.rankschecked = []
 
@@ -114,7 +116,7 @@ class InletForcingPlugin(BasePlugin):
 
 
 		# Current mass flow rate per area
-		mdot += -rhou[0]/self.area # Negative since rhou_in normal points outwards
+		self.mdot += -rhou[0]/self.area # Negative since rhou_in normal points outwards
 
 		if len(self.rankschecked) == len(self.inletranks):
 			print(self.rankschecked, self.inletranks)
@@ -128,4 +130,5 @@ class InletForcingPlugin(BasePlugin):
 			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
 			intg.system.mdotold = float(comm.bcast(mdot, root=root))
 			self.rankschecked = []
+			self.mdot = 0.0
 
