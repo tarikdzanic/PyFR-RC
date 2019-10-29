@@ -109,6 +109,7 @@ class InletForcingPlugin(BasePlugin):
 			rhou[:ndims] += np.einsum('i...,ij,jik', qwts, ru, norms)
 			area[:ndims] += -np.einsum('i...,ij,jik', qwts, ones, norms)
 
+		print(rhou[0],area[0])
 		# Current mass flow rate per area
 		if area[0] != 0.0:
 			self.mdot = -rhou[0]/area[0] # Negative since rhou_in normal points outwards
