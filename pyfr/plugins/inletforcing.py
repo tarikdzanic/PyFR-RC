@@ -122,4 +122,5 @@ class InletForcingPlugin(BasePlugin):
 			# Broadcast to all ranks
 			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
 			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
+			print(intg.system.rhouforce)
 
