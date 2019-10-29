@@ -81,6 +81,9 @@ class InletForcingPlugin(BasePlugin):
 		# MPI info
 		comm, rank, root = get_comm_rank_root()
 
+		print(rank)
+		print(intg.system.inletranks)
+
 		if rank not in intg.system.inletranks:
 			return
 		else:
