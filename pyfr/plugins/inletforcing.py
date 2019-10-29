@@ -48,6 +48,7 @@ class InletForcingPlugin(BasePlugin):
 		# If we have the boundary then process the interface
 		if bc in mesh:
 			intg.inletranks.append(rank)
+			intg.inletranks = float(comm.bcast(intg.inletranks, root=root))
 			# Element indices and associated face normals
 			eidxs = defaultdict(list)
 			norms = defaultdict(list)
