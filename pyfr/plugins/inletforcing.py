@@ -29,7 +29,10 @@ class InletForcingPlugin(BasePlugin):
 		self.mdotstar = self.cfg.getfloat(cfgsect, 'mdotstar') # Desired mass flow rate per area at inlet
 
 		self.mdot = 0.0
-		self.inletranks = []
+		try:
+			self.inletranks
+		except NameError:
+			self.inletranks = []
 		self.rankschecked = []
 
 		# Initialize rhou forcing
