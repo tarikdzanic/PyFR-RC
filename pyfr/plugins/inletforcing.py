@@ -47,7 +47,7 @@ class InletForcingPlugin(BasePlugin):
 
 		# If we have the boundary then process the interface
 		if bc in mesh:
-			intg.system.inletranks.append(rank)
+			intg.inletranks.append(rank)
 			# Element indices and associated face normals
 			eidxs = defaultdict(list)
 			norms = defaultdict(list)
@@ -77,12 +77,12 @@ class InletForcingPlugin(BasePlugin):
 		comm, rank, root = get_comm_rank_root()
 
 		print(rank)
-		print(intg.system.inletranks)
+		print(intg.inletranks)
 
-		if rank not in intg.system.inletranks:
+		if rank not in intg.inletranks:
 			return
 		else:
-			intg.system.rankschecked.append(rank)
+			intg.rankschecked.append(rank)
 
 		# Solution matrices indexed by element type
 		solns = dict(zip(intg.system.ele_types, intg.soln))
@@ -119,8 +119,8 @@ class InletForcingPlugin(BasePlugin):
 		# Current mass flow rate per area
 		self.mdot += -rhou[0]/self.area # Negative since rhou_in normal points outwards
 
-		if len(intg.system.rankschecked) == len(intg.system.inletranks):
-			print(intg.system.rankschecked, intg.system.inletranks)
+		if len(intg.rankschecked) == len(intg.inletranks):
+			print(intg.rankschecked, intg.inletranks)
 			# Body forcing term added to maintain constant mass inflow
 			ruf = intg.system.rhouforce + (1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
 
@@ -130,6 +130,6 @@ class InletForcingPlugin(BasePlugin):
 			# Broadcast to all ranks
 			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
 			intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
-			intg.system.rankschecked = []
+			intg.rankschecked = []
 			self.mdot = 0.0
 
