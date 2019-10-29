@@ -14,6 +14,3 @@ class NavierStokesSystem(BaseAdvectionDiffusionSystem):
     intinterscls = NavierStokesIntInters
     mpiinterscls = NavierStokesMPIInters
     bbcinterscls = NavierStokesBaseBCInters
-
-
-	rankschecked = []

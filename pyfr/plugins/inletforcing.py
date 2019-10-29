@@ -30,8 +30,6 @@ class InletForcingPlugin(BasePlugin):
 
 		self.mdot = 0.0
 
-		intg.system.rankschecked = []
-
 		# Initialize rhou forcing
 		intg.system.rhouforce = 0.0
 		intg.system.mdotold = self.mdotstar
