@@ -117,7 +117,7 @@ class InletForcingPlugin(BasePlugin):
 				area[:ndims] += -np.einsum('i...,ij,jik', qwts, ones, norms)
 
 
-			self.mdot = -(area[0]/self.area)*rhou[0]/area[0] # Negative since rhou_in normal points outwards, normalized by portion of total inlet area
+			self.mdot = abs((area[0]/self.area)*rhou[0]/area[0]) # Negative since rhou_in normal points outwards, normalized by portion of total inlet area
 
 			intg.system.mdot = comm.allreduce(self.mdot, op=get_mpi('sum')) 
 
