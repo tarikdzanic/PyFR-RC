@@ -27,11 +27,13 @@ class InletForcingPlugin(BasePlugin):
 		inletname = self.cfg.getliteral(cfgsect, 'inletname')
 		self.area = self.cfg.getfloat(cfgsect, 'area')
 		self.mdotstar = self.cfg.getfloat(cfgsect, 'mdotstar') # Desired mass flow rate per area at inlet
-
 		self.mdot = 0.0
+
+		self.hasinlet = False
 
 		# Initialize rhou forcing
 		intg.system.rhouforce = 0.0
+		intg.system.mdot = 0.0
 		intg.system.mdotold = self.mdotstar
 
 		# Boundary to integrate over
@@ -47,6 +49,7 @@ class InletForcingPlugin(BasePlugin):
 
 		# If we have the boundary then process the interface
 		if bc in mesh:
+			self.hasinlet = True
 			# Element indices and associated face normals
 			eidxs = defaultdict(list)
 			norms = defaultdict(list)
@@ -75,52 +78,57 @@ class InletForcingPlugin(BasePlugin):
 		# MPI info
 		comm, rank, root = get_comm_rank_root()
 
-		# Solution matrices indexed by element type
-		solns = dict(zip(intg.system.ele_types, intg.soln))
-		ndims, nvars = self.ndims, self.nvars
+		if not self.hasinlet:
+			intg.system.mdot = comm.allreduce(0.0, op=get_mpi('sum')) 
 
-		# Force vector
-		rhou = np.zeros(ndims)
-		area = np.zeros(ndims)
+		else:
+			# Solution matrices indexed by element type
+			solns = dict(zip(intg.system.ele_types, intg.soln))
+			ndims, nvars = self.ndims, self.nvars
 
-		for etype, fidx in self._m0:
-			# Get the interpolation operator
-			m0 = self._m0[etype, fidx]
-			nfpts, nupts = m0.shape
+			# Force vector
+			rhou = np.zeros(ndims)
+			area = np.zeros(ndims)
 
-			# Extract the relevant elements from the solution
-			uupts = solns[etype][..., self._eidxs[etype, fidx]]
+			for etype, fidx in self._m0:
+				# Get the interpolation operator
+				m0 = self._m0[etype, fidx]
+				nfpts, nupts = m0.shape
 
-			# Interpolate to the face
-			ufpts = np.dot(m0, uupts.reshape(nupts, -1))
-			ufpts = ufpts.reshape(nfpts, nvars, -1)
-			ufpts = ufpts.swapaxes(0, 1)
+				# Extract the relevant elements from the solution
+				uupts = solns[etype][..., self._eidxs[etype, fidx]]
 
-			# Compute the U-momentum
-			ruidx = 1
-			ru = self.elementscls.con_to_pri(ufpts, self.cfg)[ruidx]
-			ones = np.ones(np.shape(ru))
+				# Interpolate to the face
+				ufpts = np.dot(m0, uupts.reshape(nupts, -1))
+				ufpts = ufpts.reshape(nfpts, nvars, -1)
+				ufpts = ufpts.swapaxes(0, 1)
 
-			# Get the quadrature weights and normal vectors
-			qwts = self._qwts[etype, fidx]
-			norms = self._norms[etype, fidx]
+				# Compute the U-momentum
+				ruidx = 1
+				ru = self.elementscls.con_to_pri(ufpts, self.cfg)[ruidx]
+				ones = np.ones(np.shape(ru))
 
-			# Do the quadrature
-			rhou[:ndims] += np.einsum('i...,ij,jik', qwts, ru, norms)
-			area[:ndims] += -np.einsum('i...,ij,jik', qwts, ones, norms)
+				# Get the quadrature weights and normal vectors
+				qwts = self._qwts[etype, fidx]
+				norms = self._norms[etype, fidx]
 
-		# Current mass flow rate per area
-		if area[0] != 0.0:
-			self.mdot = -rhou[0]/area[0] # Negative since rhou_in normal points outwards
+				# Do the quadrature
+				rhou[:ndims] += np.einsum('i...,ij,jik', qwts, ru, norms)
+				area[:ndims] += -np.einsum('i...,ij,jik', qwts, ones, norms)
+
+
+			self.mdot = -(area[0]/self.area)*rhou[0]/area[0] # Negative since rhou_in normal points outwards, normalized by portion of total inlet area
+
+			intg.system.mdot = comm.allreduce(self.mdot, op=get_mpi('sum')) 
+
+			if (intg.system.mdot/self.mdotstar > 1.1 or intg.system.mdot/self.mdotstar < 0.9):
+				print('Mass flow rate exceeds 10%% error: ', intg.system.mdot/self.mdotstar)
+
+		if rank == root:
 
 			# Body forcing term added to maintain constant mass inflow  -> weight by portion of total area for parallel runs
-			intg.system.rhouforce += (area[0]/self.area)*(1.0/intg._dt)*(self.mdotstar - 2.*self.mdot + intg.system.mdotold)
+			ruf = intg.system.rhouforce + (1.0/intg._dt)*(self.mdotstar - 2.*intg.system.mdot + intg.system.mdotold)
 
-			if (self.mdot/self.mdotstar > 1.1 or self.mdot/self.mdotstar < 0.9):
-				print('Mass flow rate exceeds 10%% error: ', self.mdot/self.mdotstar)
-
-			intg.system.mdotold = self.mdot
 			# Broadcast to all ranks
-			#intg.system.rhouforce = float(comm.bcast(ruf, root=root))
-			#intg.system.mdotold = float(comm.bcast(self.mdot, root=root))
-
+			intg.system.rhouforce = float(comm.bcast(ruf, root=root))
+			intg.system.mdotold = float(comm.bcast(intg.system.mdot, root=root))
