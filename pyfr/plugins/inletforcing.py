@@ -105,7 +105,7 @@ class InletForcingPlugin(BasePlugin):
 
 				# Compute the U-momentum
 				ruidx = 1
-				ru = self.elementscls.con_to_pri(ufpts, self.cfg)[ruidx]
+				ru = ufpts[ruidx]
 				ones = np.ones(np.shape(ru))
 
 				# Get the quadrature weights and normal vectors

@@ -14,3 +14,4 @@ class NavierStokesSystem(BaseAdvectionDiffusionSystem):
     intinterscls = NavierStokesIntInters
     mpiinterscls = NavierStokesMPIInters
     bbcinterscls = NavierStokesBaseBCInters
+    rhouforce = 0.0
